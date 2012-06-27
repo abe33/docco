@@ -55,12 +55,12 @@
 # Generate the documentation for a source file by reading it in, splitting it
 # up into comment/code sections, highlighting them for the appropriate language,
 # and merging them into an HTML template.
-generate_documentation = (source, callback) ->
+generate_documentation = (source, sources, callback) ->
   fs.readFile source, "utf-8", (error, code) ->
     throw error if error
     sections = parse source, code
     highlight source, sections, ->
-      generate_html source, sections
+      generate_html source, sections, sources
       callback()
 
 # Given a string of source code, parse out each comment and the code that
@@ -132,7 +132,7 @@ highlight = (source, sections, callback) ->
 # Once all of the code is finished highlighting, we can generate the HTML file
 # and write out the documentation. Pass the completed sections into the template
 # found in `resources/docco.jst`
-generate_html = (source, sections) ->
+generate_html = (source, sections, sources) ->
   title = path.basename source
   dest  = destination source
   html  = docco_template {
@@ -220,23 +220,12 @@ template = (str) ->
 # Create the template that we will use to generate the Docco HTML page.
 docco_template  = template fs.readFileSync(__dirname + '/../resources/docco.jst').toString()
 
-# The CSS styles we'd like to apply to the documentation.
-docco_styles    = fs.readFileSync(__dirname + '/../resources/docco.css').toString()
-
 # The start of each Pygments highlight block.
 highlight_start = '<div class="highlight"><pre>'
 
 # The end of each Pygments highlight block.
 highlight_end   = '</pre></div>'
 
-# Run the script.
-# For each source file passed in as an argument, generate the documentation.
-sources = process.ARGV.sort()
-if sources.length
-  ensure_directory 'docs', ->
-    fs.writeFile 'docs/docco.css', docco_styles
-    files = sources.slice(0)
-    next_file = -> generate_documentation files.shift(), next_file if files.length
-    next_file()
-
-module.exports = {parse, highlight, generate_html}
+module.exports = {
+  parse, highlight, generate_html, generate_documentation, ensure_directory
+}
